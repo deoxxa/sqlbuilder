@@ -9,9 +9,7 @@ import (
 func TestSelect(t *testing.T) {
 	a := assert.New(t)
 
-	var s Serializer
-
-	s.SetDialect(DialectMSSQL{})
+	s := NewSerializer(DialectMSSQL{})
 
 	tbl := AliasTable(NewTable("tblproducts",
 		"PartNo",

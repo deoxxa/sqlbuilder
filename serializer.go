@@ -11,9 +11,7 @@ type Serializer struct {
 	vals []*BoundVariable
 }
 
-type serializableString string
-
-func (s serializableString) serialize() string { return string(s) }
+func NewSerializer(d Dialect) *Serializer { return &Serializer{d: d} }
 
 type BoundVariable struct {
 	index int

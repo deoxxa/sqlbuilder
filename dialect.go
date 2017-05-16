@@ -1,8 +1,8 @@
 package sqlbuilder
 
 import (
-	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -59,16 +59,16 @@ var dialectGenericReservedWords = []string{
 
 type DialectGeneric struct{}
 
-func (DialectGeneric) Bind(i int) string { return fmt.Sprintf("$%d", i) }
+func (DialectGeneric) Bind(i int) string { return "$" + strconv.FormatInt(int64(i), 10) }
 
 func (DialectGeneric) QuoteName(name string) string {
 	if !dialectGenericNameRegexp.MatchString(name) {
-		return fmt.Sprintf("%q", name)
+		return strconv.Quote(name)
 	}
 
 	for _, e := range dialectGenericReservedWords {
 		if strings.EqualFold(e, name) {
-			return fmt.Sprintf("%q", name)
+			return strconv.Quote(name)
 		}
 	}
 
@@ -108,26 +108,26 @@ var dialectMSSQLReservedWords = []string{
 
 type DialectMSSQL struct{ QuoteEverything bool }
 
-func (DialectMSSQL) Bind(i int) string { return fmt.Sprintf("@p%d", i) }
+func (DialectMSSQL) Bind(i int) string { return "@p" + strconv.FormatInt(int64(i), 10) }
 
 func (d DialectMSSQL) QuoteName(name string) string {
 	if d.QuoteEverything {
-		return fmt.Sprintf("[%s]", name)
+		return "[" + name + "]"
 	}
 
 	if !dialectGenericNameRegexp.MatchString(name) {
-		return fmt.Sprintf("[%s]", name)
+		return "[" + name + "]"
 	}
 
 	for _, e := range dialectGenericReservedWords {
 		if strings.EqualFold(e, name) {
-			return fmt.Sprintf("[%s]", name)
+			return "[" + name + "]"
 		}
 	}
 
 	for _, e := range dialectMSSQLReservedWords {
 		if strings.EqualFold(e, name) {
-			return fmt.Sprintf("[%s]", name)
+			return "[" + name + "]"
 		}
 	}
 
@@ -154,16 +154,16 @@ func (c *MSSQLOffsetLimitClause) AsOffsetLimit(s *Serializer) {
 
 type DialectPostgres struct{}
 
-func (DialectPostgres) Bind(i int) string { return fmt.Sprintf("$%d", i) }
+func (DialectPostgres) Bind(i int) string { return "$" + strconv.FormatInt(int64(i), 10) }
 
 func (DialectPostgres) QuoteName(name string) string {
-	return fmt.Sprintf("%q", name)
+	return strconv.Quote(name)
 }
 
 type DialectSQLite struct{}
 
-func (DialectSQLite) Bind(i int) string { return fmt.Sprintf("$%d", i) }
+func (DialectSQLite) Bind(i int) string { return "$" + strconv.FormatInt(int64(i), 10) }
 
 func (DialectSQLite) QuoteName(name string) string {
-	return fmt.Sprintf("%q", name)
+	return strconv.Quote(name)
 }

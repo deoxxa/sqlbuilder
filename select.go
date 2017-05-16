@@ -1,8 +1,12 @@
 package sqlbuilder
 
-import (
-	"fmt"
-)
+type AsCommonTableExpression interface {
+	AsCommonTableExpression(s *Serializer)
+}
+
+type AsDistinct interface {
+	AsDistinct(s *Serializer)
+}
 
 type AsTableOrSubquery interface {
 	AsTableOrSubquery(s *Serializer)
@@ -21,6 +25,8 @@ type AsOffsetLimit interface {
 }
 
 type SelectStatement struct {
+	with        []AsCommonTableExpression
+	distinct    AsDistinct
 	from        AsTableOrSubquery
 	columns     []AsExpr
 	where       AsExpr
@@ -31,17 +37,31 @@ type SelectStatement struct {
 
 func (s *SelectStatement) clone() *SelectStatement {
 	return &SelectStatement{
+		with:        s.with,
+		distinct:    s.distinct,
 		from:        s.from,
-		columns:     s.columns[:],
+		columns:     s.columns,
 		where:       s.where,
-		orderBy:     s.orderBy[:],
-		groupBy:     s.groupBy[:],
+		orderBy:     s.orderBy,
+		groupBy:     s.groupBy,
 		offsetLimit: s.offsetLimit,
 	}
 }
 
 func Select() *SelectStatement {
 	return &SelectStatement{}
+}
+
+func (s *SelectStatement) With(with ...AsCommonTableExpression) *SelectStatement {
+	c := s.clone()
+	c.with = with
+	return c
+}
+
+func (s *SelectStatement) Distinct(distinct AsDistinct) *SelectStatement {
+	c := s.clone()
+	c.distinct = distinct
+	return c
 }
 
 func (s *SelectStatement) From(from AsTableOrSubquery) *SelectStatement {
@@ -80,8 +100,24 @@ func (s *SelectStatement) OffsetLimit(offsetLimit AsOffsetLimit) *SelectStatemen
 	return c
 }
 
-func (q *SelectStatement) Serialize(s *Serializer) {
+func (q *SelectStatement) As(alias string) AsExpr {
+	return AliasColumn(q, alias)
+}
+
+func (q *SelectStatement) AsStatement(s *Serializer) {
+	if len(q.with) > 0 {
+		s.D("WITH ")
+
+		for i, w := range q.with {
+			s.F(w.AsCommonTableExpression).DC(",", i != len(q.with)-1).D(" ")
+		}
+	}
+
 	s.D("SELECT")
+
+	if q.distinct != nil {
+		s.D(" ").F(q.distinct.AsDistinct)
+	}
 
 	for i, c := range q.columns {
 		s.D(" ")
@@ -124,32 +160,14 @@ func (q *SelectStatement) Serialize(s *Serializer) {
 	}
 }
 
-func OrderAsc(expr AsExpr) *OrderingTerm  { return &OrderingTerm{expr: expr, order: "ASC"} }
-func OrderDesc(expr AsExpr) *OrderingTerm { return &OrderingTerm{expr: expr, order: "DESC"} }
-
-type OrderingTerm struct {
-	expr  AsExpr
-	order string
+func (q *SelectStatement) AsExpr(s *Serializer) {
+	s.D("(").F(q.AsStatement).D(")")
 }
 
-func (t *OrderingTerm) AsOrderingTerm(s *Serializer) {
-	s.F(t.expr.AsExpr).D(" ").D(t.order)
+func (q *SelectStatement) AsTableOrSubquery(s *Serializer) {
+	s.D("(").F(q.AsStatement).D(")")
 }
 
-func OffsetLimit(offset, limit uint) *OffsetLimitClause {
-	return &OffsetLimitClause{offset: offset, limit: limit}
-}
-
-type OffsetLimitClause struct {
-	offset, limit uint
-}
-
-func (c *OffsetLimitClause) AsOffsetLimit(s *Serializer) {
-	if c.limit != 0 {
-		s.D(fmt.Sprintf("LIMIT %d", c.limit))
-
-		if c.offset != 0 {
-			s.D(fmt.Sprintf(" OFFSET %d", c.offset))
-		}
-	}
+func (q *SelectStatement) C(name string) *BasicColumn {
+	return &BasicColumn{name: name}
 }

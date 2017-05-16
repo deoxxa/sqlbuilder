@@ -9,30 +9,44 @@ type Serializer struct {
 
 	bits []string
 	vals []*BoundVariable
+	vpos map[*BoundVariable]int
 }
 
-func NewSerializer(d Dialect) *Serializer { return &Serializer{d: d} }
+func NewSerializer(d Dialect) *Serializer {
+	return &Serializer{
+		d:    d,
+		vpos: make(map[*BoundVariable]int),
+	}
+}
 
 type BoundVariable struct {
-	index int
 	value interface{}
+}
+
+func Bind(value interface{}) *BoundVariable {
+	return &BoundVariable{value: value}
 }
 
 func (b *BoundVariable) AsExpr(s *Serializer) {
 	s.V(b)
 }
 
+func (b *BoundVariable) As(alias string) *ColumnAlias {
+	return AliasColumn(b, alias)
+}
+
 // Bind binds a variable to this serializer - this can be used for e.g.
 // symbolic representation of user input.
 func (s *Serializer) Bind(val interface{}) *BoundVariable {
 	b, ok := val.(*BoundVariable)
-	if ok {
-		return b
+	if !ok {
+		b = Bind(val)
 	}
 
-	b = &BoundVariable{index: len(s.vals) + 1, value: val}
-
-	s.vals = append(s.vals, b)
+	if _, ok := s.vpos[b]; !ok {
+		s.vals = append(s.vals, b)
+		s.vpos[b] = len(s.vals)
+	}
 
 	return b
 }
@@ -41,6 +55,32 @@ func (s *Serializer) Bind(val interface{}) *BoundVariable {
 // returning them as []AsExpr. This is most useful for In and NotIn
 // conditions.
 func (s *Serializer) BindAllAsExpr(vals ...interface{}) []AsExpr {
+	l := make([]AsExpr, len(vals))
+
+	for i, val := range vals {
+		l[i] = s.Bind(val)
+	}
+
+	return l
+}
+
+// BindAllStringsAsExpr binds multiple variables to this serializer at once,
+// returning them as []AsExpr. This is most useful for In and NotIn
+// conditions.
+func (s *Serializer) BindAllStringsAsExpr(vals ...string) []AsExpr {
+	l := make([]AsExpr, len(vals))
+
+	for i, val := range vals {
+		l[i] = s.Bind(val)
+	}
+
+	return l
+}
+
+// BindAllIntsAsExpr binds multiple variables to this serializer at once,
+// returning them as []AsExpr. This is most useful for In and NotIn
+// conditions.
+func (s *Serializer) BindAllIntsAsExpr(vals ...int) []AsExpr {
 	l := make([]AsExpr, len(vals))
 
 	for i, val := range vals {
@@ -98,8 +138,7 @@ func (s *Serializer) V(val interface{}) *Serializer { return s.VC(val, true) }
 // placeholder, only if "w" is true
 func (s *Serializer) VC(val interface{}, w bool) *Serializer {
 	if w {
-		b := s.Bind(val)
-		s.bits = append(s.bits, dialect(s.d).Bind(b.index))
+		s.bits = append(s.bits, dialect(s.d).Bind(s.vpos[s.Bind(val)]))
 	}
 	return s
 }

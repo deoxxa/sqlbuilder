@@ -18,3 +18,7 @@ func (e *FuncExpr) AsExpr(s *Serializer) {
 
 	s.D(")")
 }
+
+func (e *FuncExpr) As(alias string) *ColumnAlias {
+	return AliasColumn(e, alias)
+}

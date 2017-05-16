@@ -25,6 +25,18 @@ func (o *InOperatorExpr) AsExpr(s *Serializer) {
 	s.D(")")
 }
 
+func Like(left, right AsExpr) *LikeOperatorExpr {
+	return &LikeOperatorExpr{left: left, right: right}
+}
+
+type LikeOperatorExpr struct {
+	left, right AsExpr
+}
+
+func (o *LikeOperatorExpr) AsExpr(s *Serializer) {
+	s.F(o.left.AsExpr).D(" LIKE ").F(o.right.AsExpr)
+}
+
 func And(left, right AsExpr) *BinaryOperatorExpr { return BinaryOperator("AND", left, right) }
 func Or(left, right AsExpr) *BinaryOperatorExpr  { return BinaryOperator("OR", left, right) }
 

@@ -18,6 +18,10 @@ func (c *BasicColumn) AsExpr(s *Serializer) {
 	s.N(c.name)
 }
 
+func (c *BasicColumn) As(alias string) *ColumnAlias {
+	return AliasColumn(c, alias)
+}
+
 type ColumnAlias struct {
 	expr  AsExpr
 	alias string

@@ -36,21 +36,22 @@ func (t *Table) AsTableOrSubquery(s *Serializer) {
 	s.N(t.name)
 }
 
-type TableAlias struct {
-	from    *Table
-	name    string
-	columns []*BasicColumn
+type AsTableOrSubqueryAndWithColumns interface {
+	AsTableOrSubquery
+	WithColumns
 }
 
-func AliasTable(t *Table, name string) *TableAlias {
+type TableAlias struct {
+	from    AsTableOrSubqueryAndWithColumns
+	name    string
+	columns map[string]*BasicColumn
+}
+
+func AliasTable(t AsTableOrSubqueryAndWithColumns, name string) *TableAlias {
 	a := &TableAlias{
 		from:    t,
 		name:    name,
-		columns: make([]*BasicColumn, len(t.columns)),
-	}
-
-	for i, c := range t.columns {
-		a.columns[i] = &BasicColumn{table: a, name: c.name}
+		columns: make(map[string]*BasicColumn),
 	}
 
 	return a
@@ -65,10 +66,13 @@ func (a *TableAlias) AsTableOrSubquery(s *Serializer) {
 }
 
 func (a *TableAlias) C(name string) *BasicColumn {
-	c := a.from.C(name)
-
-	return &BasicColumn{
-		table: a,
-		name:  c.name,
+	if a.columns[name] != nil {
+		return a.columns[name]
 	}
+
+	if c := a.from.C(name); c != nil {
+		a.columns[name] = &BasicColumn{table: a, name: name}
+	}
+
+	return a.columns[name]
 }

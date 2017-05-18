@@ -27,6 +27,42 @@ func Bind(value interface{}) *BoundVariable {
 	return &BoundVariable{value: value}
 }
 
+// BindAllAsExpr binds multiple variables at once, returning them as []AsExpr.
+// This is most useful for In and NotIn conditions.
+func BindAllAsExpr(vals ...interface{}) []AsExpr {
+	l := make([]AsExpr, len(vals))
+
+	for i, val := range vals {
+		l[i] = Bind(val)
+	}
+
+	return l
+}
+
+// BindAllStringsAsExpr binds multiple variables at once, returning them as
+// []AsExpr. This is most useful for In and NotIn conditions.
+func BindAllStringsAsExpr(vals ...string) []AsExpr {
+	l := make([]AsExpr, len(vals))
+
+	for i, val := range vals {
+		l[i] = Bind(val)
+	}
+
+	return l
+}
+
+// BindAllIntsAsExpr binds multiple variables at once, returning them as
+// []AsExpr. This is most useful for In and NotIn conditions.
+func BindAllIntsAsExpr(vals ...int) []AsExpr {
+	l := make([]AsExpr, len(vals))
+
+	for i, val := range vals {
+		l[i] = Bind(val)
+	}
+
+	return l
+}
+
 func (b *BoundVariable) AsExpr(s *Serializer) {
 	s.V(b)
 }

@@ -156,7 +156,7 @@ func (q *SelectStatement) AsStatement(s *Serializer) {
 	}
 
 	if q.having != nil {
-		s.D(" HAVING").F(q.having.AsExpr)
+		s.D(" HAVING ").F(q.having.AsExpr)
 	}
 
 	if len(q.orderBy) > 0 {

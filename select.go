@@ -32,6 +32,7 @@ type SelectStatement struct {
 	where       AsExpr
 	orderBy     []AsOrderingTerm
 	groupBy     []AsExpr
+	having      AsExpr
 	offsetLimit AsOffsetLimit
 }
 
@@ -44,6 +45,7 @@ func (s *SelectStatement) clone() *SelectStatement {
 		where:       s.where,
 		orderBy:     s.orderBy,
 		groupBy:     s.groupBy,
+		having:      s.having,
 		offsetLimit: s.offsetLimit,
 	}
 }
@@ -91,6 +93,12 @@ func (s *SelectStatement) OrderBy(orderBy ...AsOrderingTerm) *SelectStatement {
 func (s *SelectStatement) GroupBy(groupBy ...AsExpr) *SelectStatement {
 	c := s.clone()
 	c.groupBy = groupBy
+	return c
+}
+
+func (s *SelectStatement) Having(having AsExpr) *SelectStatement {
+	c := s.clone()
+	c.having = having
 	return c
 }
 
@@ -145,6 +153,10 @@ func (q *SelectStatement) AsStatement(s *Serializer) {
 		for i, e := range q.groupBy {
 			s.D(" ").F(e.AsExpr).DC(",", i < len(q.groupBy)-1)
 		}
+	}
+
+	if q.having != nil {
+		s.D(" HAVING").F(q.having.AsExpr)
 	}
 
 	if len(q.orderBy) > 0 {

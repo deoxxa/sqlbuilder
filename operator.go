@@ -114,3 +114,20 @@ func PostfixOperator(expr AsExpr, operator string) *PostfixOperatorExpr {
 func (o *PostfixOperatorExpr) AsExpr(s *Serializer) {
 	s.F(o.expr.AsExpr).D(" ").D(o.operator)
 }
+
+type InfixOperatorExpr struct {
+	operator string
+	exprs    []AsExpr
+}
+
+func InfixOperator(operator string, exprs ...AsExpr) *InfixOperatorExpr {
+	return &InfixOperatorExpr{operator: operator, exprs: exprs}
+}
+
+func (o *InfixOperatorExpr) AsExpr(s *Serializer) {
+	s.D("(")
+	for i, e := range o.exprs {
+		s.F(e.AsExpr).DC(" "+o.operator+" ", i < len(o.exprs)-1)
+	}
+	s.D(")")
+}

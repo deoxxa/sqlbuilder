@@ -84,6 +84,24 @@ func (s *SelectStatement) Where(where AsExpr) *SelectStatement {
 	return c
 }
 
+func (s *SelectStatement) AndWhere(where AsExpr) *SelectStatement {
+	c := s.clone()
+
+	if c.where == nil {
+		c.where = where
+	} else {
+		expr := c.where
+
+		if bexpr, ok := expr.(*BooleanOperatorExpr); ok && bexpr.operator == "AND" {
+			c.where = BooleanOperator("AND", append(bexpr.elements[:], where)...)
+		} else {
+			c.where = BooleanOperator("AND", expr, where)
+		}
+	}
+
+	return c
+}
+
 func (s *SelectStatement) OrderBy(orderBy ...AsOrderingTerm) *SelectStatement {
 	c := s.clone()
 	c.orderBy = orderBy

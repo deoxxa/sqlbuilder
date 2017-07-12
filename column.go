@@ -6,6 +6,10 @@ type BasicColumn struct {
 	name   string
 }
 
+func (c *BasicColumn) AsNamedShort(s *Serializer) {
+	s.N(c.name)
+}
+
 func (c *BasicColumn) AsExpr(s *Serializer) {
 	if c.table != nil {
 		if c.schema != nil {

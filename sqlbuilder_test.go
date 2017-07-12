@@ -6,6 +6,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestUpdate(t *testing.T) {
+	a := assert.New(t)
+
+	tbl := NewTable("users", "id", "name", "email")
+
+	q := Update().Table(tbl).Set(UpdateColumns{
+		tbl.C("name"): Bind("jim"),
+	}).Where(Eq(tbl.C("id"), Bind(5)))
+
+	qs, qv, err := NewSerializer(DialectPostgres{}).F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal("UPDATE \"users\" SET \"name\" = $1 WHERE (\"users\".\"id\" = $2)", qs)
+	a.Equal([]interface{}{"jim", 5}, qv)
+}
+
 func TestSelect(t *testing.T) {
 	a := assert.New(t)
 

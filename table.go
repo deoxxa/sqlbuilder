@@ -1,5 +1,7 @@
 package sqlbuilder
 
+import "fmt"
+
 type Table struct {
 	name    string
 	columns []*BasicColumn
@@ -24,6 +26,8 @@ func (t *Table) C(name string) *BasicColumn {
 			return c
 		}
 	}
+
+	panic(fmt.Errorf("Requested column %s does not exist in table %s", name, t.name))
 
 	return nil
 }

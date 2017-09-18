@@ -97,3 +97,29 @@ func TestSelect(t *testing.T) {
 	a.Equal("SELECT p.PartNo, p.Type, p.Product, p.Grade, p.Coating, p.Finish, p.Thickness, p.Width, p.Length, p.Dim1, p.Dim2, p.ClassFBR, p.ClassFME, p.ClassFSY, @p3 AS ClassFHO, p.SLOB, dbo.productAvailablePlusALTOAmountOnHand(p.PartNo, @p1) AS OnHandAmount, dbo.productAvailableWeightOnHand(p.PartNo, @p1) AS OnHandWeight, dbo.productReservedAmount(p.PartNo, @p1) AS ReservedAmount, dbo.productALTOAmount(p.PartNo, @p1) AS ALTO, dbo.getPartAvgCost(p.PartNo) AS AverageCost, dbo.productOnOrderAmount(p.PartNo, @p1) AS OnOrderAmount, dbo.productOnOrderWeight(p.PartNo, @p1) AS OnOrderWeight, dbo.getListPriceGivenAvgCost(@p2, p.PartNo, dbo.getPartAvgCost(p.PartNo)) AS MinimumPrice, dbo.customerLastPrice(p.PartNo, @p2) AS CustomerLastPrice, CONVERT(VARCHAR(23), dbo.customerLastSoldDate(p.PartNo, @p2), 126) AS CustomerLastSoldDate, (1 + 2 + 3) AS Five FROM tblproducts p WHERE p.PartNo IN (@p4, @p5, @p6) ORDER BY p.Type ASC, p.Product ASC, p.Grade ASC, p.Coating ASC, p.Finish ASC, p.Thickness ASC, p.Width ASC, p.Dim1 ASC, p.Dim2 ASC, p.Length ASC OFFSET @p7 ROWS FETCH NEXT @p8 ROWS ONLY", qs)
 	a.Equal([]interface{}{"REGION_1", "CUSTOMER_1", "D", 1000, 1001, 1002, 30, 30}, qv)
 }
+
+func TestJoin(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectSQLite{})
+
+	t1 := NewTable("table1", "id", "title1")
+	t2 := NewTable("table2", "id", "table1_id", "title2")
+	t3 := NewTable("table3", "id", "table2_id", "title3")
+
+	q := Select().Columns(
+		t1.C("title1"),
+		t2.C("title2"),
+		t3.C("title3"),
+	).From(
+		t1.
+			LeftJoin(t2).On(Eq(t2.C("table1_id"), t1.C("id"))).
+			LeftJoin(t3).On(Eq(t3.C("table2_id"), t2.C("id"))),
+	).Where(Eq(t3.C("title3"), Bind("asdf")))
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`SELECT "table1"."title1", "table2"."title2", "table3"."title3" FROM "table1" LEFT JOIN "table2" ON ("table2"."table1_id" = "table1"."id") LEFT JOIN "table3" ON ("table3"."table2_id" = "table2"."id") WHERE ("table3"."title3" = $1)`, qs)
+	a.Equal([]interface{}{"asdf"}, qv)
+}

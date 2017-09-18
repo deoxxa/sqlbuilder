@@ -32,6 +32,18 @@ func (t *Table) C(name string) *BasicColumn {
 	return nil
 }
 
+func (t *Table) Join(kind string, right AsTableOrSubquery) *JoinExpr {
+	return Join(kind, t, right)
+}
+
+func (t *Table) LeftJoin(right AsTableOrSubquery) *JoinExpr {
+	return LeftJoin(t, right)
+}
+
+func (t *Table) CrossJoin(right AsTableOrSubquery) *JoinExpr {
+	return CrossJoin(t, right)
+}
+
 func (t *Table) AsNamed(s *Serializer) {
 	s.N(t.name)
 }
@@ -79,4 +91,16 @@ func (a *TableAlias) C(name string) *BasicColumn {
 	}
 
 	return a.columns[name]
+}
+
+func (a *TableAlias) Join(kind string, right AsTableOrSubquery) *JoinExpr {
+	return Join(kind, a, right)
+}
+
+func (a *TableAlias) LeftJoin(right AsTableOrSubquery) *JoinExpr {
+	return LeftJoin(a, right)
+}
+
+func (a *TableAlias) CrossJoin(right AsTableOrSubquery) *JoinExpr {
+	return CrossJoin(a, right)
 }

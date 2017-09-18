@@ -201,3 +201,15 @@ func (q *SelectStatement) AsTableOrSubquery(s *Serializer) {
 func (q *SelectStatement) C(name string) *BasicColumn {
 	return &BasicColumn{name: name}
 }
+
+func (q *SelectStatement) Join(kind string, right AsTableOrSubquery) *JoinExpr {
+	return Join(kind, q, right)
+}
+
+func (q *SelectStatement) LeftJoin(right AsTableOrSubquery) *JoinExpr {
+	return LeftJoin(q, right)
+}
+
+func (q *SelectStatement) CrossJoin(right AsTableOrSubquery) *JoinExpr {
+	return CrossJoin(q, right)
+}

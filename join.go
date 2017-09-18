@@ -28,3 +28,15 @@ func (j *JoinExpr) AsTableOrSubquery(s *Serializer) {
 		s.D(" ON ").F(j.condition.AsExpr)
 	}
 }
+
+func (j *JoinExpr) Join(kind string, right AsTableOrSubquery) *JoinExpr {
+	return Join(kind, j, right)
+}
+
+func (j *JoinExpr) LeftJoin(right AsTableOrSubquery) *JoinExpr {
+	return LeftJoin(j, right)
+}
+
+func (j *JoinExpr) CrossJoin(right AsTableOrSubquery) *JoinExpr {
+	return CrossJoin(j, right)
+}

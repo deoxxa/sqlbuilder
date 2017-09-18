@@ -76,3 +76,15 @@ func (t *ValuesTableExpr) C(name string) *BasicColumn {
 
 	return nil
 }
+
+func (t *ValuesTableExpr) Join(kind string, right AsTableOrSubquery) *JoinExpr {
+	return Join(kind, t, right)
+}
+
+func (t *ValuesTableExpr) LeftJoin(right AsTableOrSubquery) *JoinExpr {
+	return LeftJoin(t, right)
+}
+
+func (t *ValuesTableExpr) CrossJoin(right AsTableOrSubquery) *JoinExpr {
+	return CrossJoin(t, right)
+}

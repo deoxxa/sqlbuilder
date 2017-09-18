@@ -37,3 +37,15 @@ func (e *CommonTableExpressionExpr) C(name string) *BasicColumn {
 func (e *CommonTableExpressionExpr) AsTableOrSubquery(s *Serializer) {
 	s.N(e.name)
 }
+
+func (e *CommonTableExpressionExpr) Join(kind string, right AsTableOrSubquery) *JoinExpr {
+	return Join(kind, e, right)
+}
+
+func (e *CommonTableExpressionExpr) LeftJoin(right AsTableOrSubquery) *JoinExpr {
+	return LeftJoin(e, right)
+}
+
+func (e *CommonTableExpressionExpr) CrossJoin(right AsTableOrSubquery) *JoinExpr {
+	return CrossJoin(e, right)
+}

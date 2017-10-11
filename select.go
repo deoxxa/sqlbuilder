@@ -85,24 +85,14 @@ func (s *SelectStatement) Where(where AsExpr) *SelectStatement {
 }
 
 func (s *SelectStatement) AndWhere(where AsExpr) *SelectStatement {
-	c := s.clone()
-
-	if c.where == nil {
-		c.where = where
-	} else {
-		expr := c.where
-
-		if bexpr, ok := expr.(*BooleanOperatorExpr); ok && bexpr.operator == "AND" {
-			c.where = BooleanOperator("AND", append(bexpr.elements[:], where)...)
-		} else {
-			c.where = BooleanOperator("AND", expr, where)
-		}
-	}
-
-	return c
+	return andOrWhere(where, s, "AND")
 }
 
 func (s *SelectStatement) OrWhere(where AsExpr) *SelectStatement {
+	return andOrWhere(where, s, "OR")
+}
+
+func andOrWhere(where AsExpr, s *SelectStatement, operator string) *SelectStatement {
 	c := s.clone()
 
 	if c.where == nil {
@@ -110,10 +100,10 @@ func (s *SelectStatement) OrWhere(where AsExpr) *SelectStatement {
 	} else {
 		expr := c.where
 
-		if bexpr, ok := expr.(*BooleanOperatorExpr); ok && bexpr.operator == "OR" {
-			c.where = BooleanOperator("OR", append(bexpr.elements[:], where)...)
+		if bexpr, ok := expr.(*BooleanOperatorExpr); ok && bexpr.operator == operator {
+			c.where = BooleanOperator(operator, append(bexpr.elements[:], where)...)
 		} else {
-			c.where = BooleanOperator("OR", expr, where)
+			c.where = BooleanOperator(operator, expr, where)
 		}
 	}
 

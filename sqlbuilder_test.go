@@ -123,3 +123,33 @@ func TestJoin(t *testing.T) {
 	a.Equal(`SELECT "table1"."title1", "table2"."title2", "table3"."title3" FROM "table1" LEFT JOIN "table2" ON ("table2"."table1_id" = "table1"."id") LEFT JOIN "table3" ON ("table3"."table2_id" = "table2"."id") WHERE ("table3"."title3" = $1)`, qs)
 	a.Equal([]interface{}{"asdf"}, qv)
 }
+
+func TestMultipleQueries(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectSQLite{})
+
+	t1 := NewTable("table1", "id", "title")
+
+	q := Update().Table(t1)
+
+	for _, e := range []struct {
+		id    int
+		title string
+	}{
+		{1, "title one"},
+		{2, "title two"},
+		{3, "title three"},
+	} {
+		s = s.
+			F(q.
+				Set(UpdateColumns{t1.C("title"): Bind(e.title)}).Where(Eq(t1.C("id"), Bind(e.id))).AsStatement).
+			D(";")
+	}
+
+	qs, qv, err := s.ToSQL()
+
+	a.NoError(err)
+	a.Equal(`UPDATE "table1" SET "title" = $1 WHERE ("table1"."id" = $2);UPDATE "table1" SET "title" = $3 WHERE ("table1"."id" = $4);UPDATE "table1" SET "title" = $5 WHERE ("table1"."id" = $6);`, qs)
+	a.Equal([]interface{}{"title one", 1, "title two", 2, "title three", 3}, qv)
+}

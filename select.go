@@ -60,6 +60,12 @@ func (s *SelectStatement) With(with ...AsCommonTableExpression) *SelectStatement
 	return c
 }
 
+func (s *SelectStatement) AndWith(with ...AsCommonTableExpression) *SelectStatement {
+	c := s.clone()
+	c.with = append(c.with, with...)
+	return c
+}
+
 func (s *SelectStatement) Distinct(distinct AsDistinct) *SelectStatement {
 	c := s.clone()
 	c.distinct = distinct

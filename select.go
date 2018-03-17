@@ -78,6 +78,10 @@ func (s *SelectStatement) From(from AsTableOrSubquery) *SelectStatement {
 	return c
 }
 
+func (s *SelectStatement) GetFrom() AsTableOrSubquery {
+	return s.from
+}
+
 func (s *SelectStatement) Columns(columns ...AsExpr) *SelectStatement {
 	c := s.clone()
 	c.columns = columns
@@ -88,6 +92,10 @@ func (s *SelectStatement) Where(where AsExpr) *SelectStatement {
 	c := s.clone()
 	c.where = where
 	return c
+}
+
+func (s *SelectStatement) GetWhere() AsExpr {
+	return s.where
 }
 
 func (s *SelectStatement) AndWhere(where AsExpr) *SelectStatement {

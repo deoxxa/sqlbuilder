@@ -173,3 +173,17 @@ func TestExpressionTable(t *testing.T) {
 	a.Equal(`SELECT "dt"."d" FROM generate_series($1, $2, '1 month') AS "dt" ("d")`, qs)
 	a.Equal([]interface{}{t1, t2}, qv)
 }
+
+func TestCast(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectPostgres{})
+
+	q := Select().Columns(Cast(Bind(1), "numeric"))
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`SELECT CAST ($1 AS numeric)`, qs)
+	a.Equal([]interface{}{1}, qv)
+}

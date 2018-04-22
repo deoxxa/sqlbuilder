@@ -2,6 +2,7 @@ package sqlbuilder
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -152,4 +153,23 @@ func TestMultipleQueries(t *testing.T) {
 	a.NoError(err)
 	a.Equal(`UPDATE "table1" SET "title" = $1 WHERE ("table1"."id" = $2);UPDATE "table1" SET "title" = $3 WHERE ("table1"."id" = $4);UPDATE "table1" SET "title" = $5 WHERE ("table1"."id" = $6);`, qs)
 	a.Equal([]interface{}{"title one", 1, "title two", 2, "title three", 3}, qv)
+}
+
+func TestExpressionTable(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectPostgres{})
+
+	t1 := time.Date(2018, 1, 1, 0, 0, 0, 0, time.UTC)
+	t2 := time.Date(2018, 6, 1, 0, 0, 0, 0, time.UTC)
+
+	tbl := ExpressionTable(Func("generate_series", Bind(t1), Bind(t2), Literal("'1 month'")), "dt", "d")
+
+	q := Select().From(tbl).Columns(tbl.C("d"))
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`SELECT "dt"."d" FROM generate_series($1, $2, '1 month') AS "dt" ("d")`, qs)
+	a.Equal([]interface{}{t1, t2}, qv)
 }

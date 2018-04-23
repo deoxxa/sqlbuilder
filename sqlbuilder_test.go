@@ -187,3 +187,19 @@ func TestCast(t *testing.T) {
 	a.Equal(`SELECT CAST ($1 AS numeric)`, qs)
 	a.Equal([]interface{}{1}, qv)
 }
+
+func TestFilter(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectPostgres{})
+
+	tbl := NewTable("table1", "d", "n")
+
+	q := Select().Columns(Filter(Func("sum", tbl.C("n")), Gt(tbl.C("d"), Bind(5))))
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`SELECT sum("table1"."n") FILTER (WHERE ("table1"."d" > $1))`, qs)
+	a.Equal([]interface{}{5}, qv)
+}

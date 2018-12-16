@@ -122,6 +122,12 @@ func (s *SelectStatement) OrderBy(orderBy ...AsOrderingTerm) *SelectStatement {
 	return c
 }
 
+func (s *SelectStatement) AndOrderBy(orderBy ...AsOrderingTerm) *SelectStatement {
+	c := s.clone()
+	c.orderBy = append(c.orderBy[:], orderBy...)
+	return c
+}
+
 func (s *SelectStatement) GroupBy(groupBy ...AsExpr) *SelectStatement {
 	c := s.clone()
 	c.groupBy = groupBy

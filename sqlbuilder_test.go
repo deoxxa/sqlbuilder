@@ -203,3 +203,19 @@ func TestFilter(t *testing.T) {
 	a.Equal(`SELECT sum("table1"."n") FILTER (WHERE ("table1"."d" > $1))`, qs)
 	a.Equal([]interface{}{5}, qv)
 }
+
+func TestFuncTable(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectPostgres{})
+
+	f := FuncTable(Func("generate_series", Bind(1), Bind(10)), "num")
+
+	q := Select().Columns(f.C("num")).From(f)
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`SELECT "num" FROM generate_series($1, $2) "num"`, qs)
+	a.Equal([]interface{}{1, 10}, qv)
+}

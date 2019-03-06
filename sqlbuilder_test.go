@@ -219,3 +219,48 @@ func TestFuncTable(t *testing.T) {
 	a.Equal(`SELECT "num" FROM generate_series($1, $2) "num"`, qs)
 	a.Equal([]interface{}{1, 10}, qv)
 }
+
+func TestUnion(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectPostgres{})
+
+	t1 := NewTable("table1", "id", "parent_id", "name")
+	t2 := NewTable("table2", "id", "parent_id", "name")
+	t3 := NewTable("table3", "id", "parent_id", "name")
+
+	q := Select().From(t1).Columns(t1.C("id"), t1.C("parent_id"), t1.C("name"))
+	q = q.AndUnion(Union(true, Select().From(t2).Columns(t2.C("id"), t2.C("parent_id"), t2.C("name"))))
+	q = q.AndUnion(Union(true, Select().From(t3).Columns(t3.C("id"), t3.C("parent_id"), t3.C("name"))))
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`SELECT "table1"."id", "table1"."parent_id", "table1"."name" FROM "table1" UNION ALL SELECT "table2"."id", "table2"."parent_id", "table2"."name" FROM "table2" UNION ALL SELECT "table3"."id", "table3"."parent_id", "table3"."name" FROM "table3"`, qs)
+	a.Equal([]interface{}(nil), qv)
+}
+
+func TestCTEUnion(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectPostgres{})
+
+	t1 := NewTable("table1", "id", "parent_id", "n")
+	t2 := NewTable("table2", "id", "parent_id", "n")
+	t3 := NewTable("table3", "id", "parent_id", "n")
+
+	cte := CommonTableExpression("x").Recursive(true).As(
+		Select().From(t1).Columns(t1.C("id"), t1.C("parent_id")).Union(
+			Union(true, Select().From(t2).Columns(t2.C("id"), t2.C("parent_id"))),
+			Union(true, Select().From(t3).Columns(t3.C("id"), t3.C("parent_id"))),
+		),
+	)
+
+	q := Select().With(cte).Columns(cte.C("id"))
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`WITH RECURSIVE "x" AS (SELECT "table1"."id", "table1"."parent_id" FROM "table1" UNION ALL SELECT "table2"."id", "table2"."parent_id" FROM "table2" UNION ALL SELECT "table3"."id", "table3"."parent_id" FROM "table3") SELECT "x"."id"`, qs)
+	a.Equal([]interface{}(nil), qv)
+}

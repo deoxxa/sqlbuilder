@@ -24,6 +24,10 @@ type AsOffsetLimit interface {
 	AsOffsetLimit(s *Serializer)
 }
 
+type AsUnion interface {
+	AsUnion(s *Serializer)
+}
+
 type SelectStatement struct {
 	with        []AsCommonTableExpression
 	distinct    AsDistinct
@@ -34,6 +38,7 @@ type SelectStatement struct {
 	groupBy     []AsExpr
 	having      AsExpr
 	offsetLimit AsOffsetLimit
+	union       []AsUnion
 }
 
 func (s *SelectStatement) clone() *SelectStatement {
@@ -47,6 +52,7 @@ func (s *SelectStatement) clone() *SelectStatement {
 		groupBy:     s.groupBy,
 		having:      s.having,
 		offsetLimit: s.offsetLimit,
+		union:       s.union,
 	}
 }
 
@@ -208,6 +214,10 @@ func (q *SelectStatement) AsStatement(s *Serializer) {
 	if q.offsetLimit != nil {
 		s.D(" ").F(q.offsetLimit.AsOffsetLimit)
 	}
+
+	for _, e := range q.union {
+		s.D(" ").F(e.AsUnion)
+	}
 }
 
 func (q *SelectStatement) AsExpr(s *Serializer) {
@@ -232,4 +242,16 @@ func (q *SelectStatement) LeftJoin(right AsTableOrSubquery) *JoinExpr {
 
 func (q *SelectStatement) CrossJoin(right AsTableOrSubquery) *JoinExpr {
 	return CrossJoin(q, right)
+}
+
+func (s *SelectStatement) Union(union ...AsUnion) *SelectStatement {
+	c := s.clone()
+	c.union = union
+	return c
+}
+
+func (s *SelectStatement) AndUnion(union ...AsUnion) *SelectStatement {
+	c := s.clone()
+	c.union = append(c.union, union...)
+	return c
 }

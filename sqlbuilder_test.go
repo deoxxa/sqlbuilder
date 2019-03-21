@@ -264,3 +264,25 @@ func TestCTEUnion(t *testing.T) {
 	a.Equal(`WITH RECURSIVE "x" AS (SELECT "table1"."id", "table1"."parent_id" FROM "table1" UNION ALL SELECT "table2"."id", "table2"."parent_id" FROM "table2" UNION ALL SELECT "table3"."id", "table3"."parent_id" FROM "table3") SELECT "x"."id"`, qs)
 	a.Equal([]interface{}(nil), qv)
 }
+
+func TestCTEMultipleRecursive(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectPostgres{})
+
+	tbl := NewTable("tbl", "id", "parent_id", "n")
+	c1 := CommonTableExpression("c1").Recursive(true).As(
+		Select().From(tbl).Columns(tbl.C("id"), tbl.C("parent_id")),
+	)
+	c2 := CommonTableExpression("c2").Recursive(true).As(
+		Select().From(tbl).Columns(tbl.C("id"), tbl.C("parent_id")),
+	)
+
+	q := Select().With(c1).AndWith(c2).Columns(c1.C("id"), c2.C("id"))
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`WITH RECURSIVE "c1" AS (SELECT "tbl"."id", "tbl"."parent_id" FROM "tbl"), "c2" AS (SELECT "tbl"."id", "tbl"."parent_id" FROM "tbl") SELECT "c1"."id", "c2"."id"`, qs)
+	a.Equal([]interface{}(nil), qv)
+}

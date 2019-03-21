@@ -2,6 +2,7 @@ package sqlbuilder
 
 type AsCommonTableExpression interface {
 	AsCommonTableExpression(s *Serializer)
+	IsRecursive() bool
 }
 
 type AsDistinct interface {
@@ -159,6 +160,13 @@ func (q *SelectStatement) As(alias string) AsExpr {
 func (q *SelectStatement) AsStatement(s *Serializer) {
 	if len(q.with) > 0 {
 		s.D("WITH ")
+
+		for _, w := range q.with {
+			if w.IsRecursive() {
+				s.D("RECURSIVE ")
+				break
+			}
+		}
 
 		for i, w := range q.with {
 			s.F(w.AsCommonTableExpression).DC(",", i != len(q.with)-1).D(" ")

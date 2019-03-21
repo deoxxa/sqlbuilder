@@ -19,11 +19,11 @@ func (e *CommonTableExpressionExpr) As(as *SelectStatement) *CommonTableExpressi
 }
 
 func (e *CommonTableExpressionExpr) AsCommonTableExpression(s *Serializer) {
-	if e.recursive {
-		s.D("RECURSIVE ")
-	}
-
 	s.N(e.name).D(" AS (").F(e.as.AsStatement).D(")")
+}
+
+func (e *CommonTableExpressionExpr) IsRecursive() bool {
+	return e.recursive
 }
 
 func (e *CommonTableExpressionExpr) AsNamed(s *Serializer) {

@@ -286,3 +286,21 @@ func TestCTEMultipleRecursive(t *testing.T) {
 	a.Equal(`WITH RECURSIVE "c1" AS (SELECT "tbl"."id", "tbl"."parent_id" FROM "tbl"), "c2" AS (SELECT "tbl"."id", "tbl"."parent_id" FROM "tbl") SELECT "c1"."id", "c2"."id"`, qs)
 	a.Equal([]interface{}(nil), qv)
 }
+
+func TestBareColumn(t *testing.T) {
+	for _, e := range [][2]string{
+		{"a", "a"},
+		{"a b", "\"a \""},
+		{"a.b", "\"a.b\""},
+	} {
+		t.Run(e[0], func(t *testing.T) {
+			a := assert.New(t)
+
+			s := NewSerializer(DialectGeneric{})
+
+			qs, _, err := s.F(BareColumn("a").AsExpr).ToSQL()
+			a.NoError(err)
+			a.Equal("a", qs)
+		})
+	}
+}

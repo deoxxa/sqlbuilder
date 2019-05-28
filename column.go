@@ -6,6 +6,10 @@ type BasicColumn struct {
 	name   string
 }
 
+func BareColumn(name string) *BasicColumn {
+	return &BasicColumn{name: name}
+}
+
 func (c *BasicColumn) AsNamedShort(s *Serializer) {
 	s.N(c.name)
 }

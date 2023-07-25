@@ -3,14 +3,16 @@ package sqlbuilder
 type InsertColumns map[*BasicColumn]AsExpr
 
 type InsertStatement struct {
-	table   *Table
-	columns InsertColumns
+	table     *Table
+	columns   InsertColumns
+	returning []AsExpr
 }
 
 func (s *InsertStatement) clone() *InsertStatement {
 	return &InsertStatement{
-		table:   s.table,
-		columns: s.columns,
+		table:     s.table,
+		columns:   s.columns,
+		returning: s.returning,
 	}
 }
 
@@ -27,6 +29,12 @@ func (s *InsertStatement) Table(table *Table) *InsertStatement {
 func (s *InsertStatement) Columns(columns InsertColumns) *InsertStatement {
 	c := s.clone()
 	c.columns = columns
+	return c
+}
+
+func (s *InsertStatement) Returning(returning ...AsExpr) *InsertStatement {
+	c := s.clone()
+	c.returning = returning
 	return c
 }
 
@@ -50,4 +58,18 @@ func (q *InsertStatement) AsStatement(s *Serializer) {
 		s.F(k.AsExpr).DC(", ", i < len(keys)-1)
 	}
 	s.D(")")
+
+	if len(q.returning) > 0 {
+		s.D(" RETURNING ")
+
+		for i, c := range q.returning {
+			if a, ok := c.(AsResultColumn); ok {
+				s.F(a.AsResultColumn)
+			} else {
+				s.F(c.AsExpr)
+			}
+
+			s.DC(", ", i < len(q.returning)-1)
+		}
+	}
 }

@@ -7,6 +7,40 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestInsert(t *testing.T) {
+	a := assert.New(t)
+
+	tbl := NewTable("users", "id", "name", "email")
+
+	q := Insert().Table(tbl).Columns(InsertColumns{
+		tbl.C("name"):  Bind("jim"),
+		tbl.C("email"): Bind("jim@example.com"),
+	})
+
+	qs, qv, err := NewSerializer(DialectPostgres{}).F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal("INSERT INTO \"users\" (\"name\", \"email\") VALUES ($1, $2)", qs)
+	a.Equal([]interface{}{"jim", "jim@example.com"}, qv)
+}
+
+func TestInsertReturning(t *testing.T) {
+	a := assert.New(t)
+
+	tbl := NewTable("users", "id", "name", "email")
+
+	q := Insert().Table(tbl).Columns(InsertColumns{
+		tbl.C("name"):  Bind("jim"),
+		tbl.C("email"): Bind("jim@example.com"),
+	}).Returning(tbl.C("id"))
+
+	qs, qv, err := NewSerializer(DialectPostgres{}).F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal("INSERT INTO \"users\" (\"name\", \"email\") VALUES ($1, $2) RETURNING \"users\".\"id\"", qs)
+	a.Equal([]interface{}{"jim", "jim@example.com"}, qv)
+}
+
 func TestUpdate(t *testing.T) {
 	a := assert.New(t)
 

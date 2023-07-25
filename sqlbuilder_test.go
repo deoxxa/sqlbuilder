@@ -57,6 +57,33 @@ func TestUpdate(t *testing.T) {
 	a.Equal([]interface{}{"jim", 5}, qv)
 }
 
+func TestUpdateWithFromReturning(t *testing.T) {
+	a := assert.New(t)
+
+	tbl := NewTable("jobs", "id", "data", "reserved_to", "completed_at")
+
+	nextJob := CommonTableExpression("next_job").As(
+		Select().From(tbl).Columns(tbl.C("id")).Where(BooleanOperator("and",
+			BooleanOperator("or", IsNull(tbl.C("reserved_to")), Lte(tbl.C("reserved_to"), Func("now"))),
+			IsNull(tbl.C("completed_at")),
+		)).OrderBy(OrderAsc(tbl.C("id"))).OffsetLimit(OffsetLimit(nil, Literal("1"))),
+	)
+
+	updatedJob := AliasTable(tbl, "updated_job")
+
+	expiry := time.Date(2023, time.July, 25, 18, 34, 15, 0, time.UTC)
+
+	q := Update().With(nextJob).Target(updatedJob).Set(UpdateColumns{
+		updatedJob.C("reserved_to"): Bind(expiry),
+	}).Where(Eq(updatedJob.C("id"), nextJob.C("id"))).Returning(updatedJob.C("id"))
+
+	qs, qv, err := NewSerializer(DialectPostgres{}).F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`WITH "next_job" AS (SELECT "jobs"."id" FROM "jobs" WHERE (("jobs"."reserved_to" IS NULL or ("jobs"."reserved_to" <= now())) and "jobs"."completed_at" IS NULL) ORDER BY "jobs"."id" ASC LIMIT 1) UPDATE "jobs" "updated_job" SET "reserved_to" = $1 WHERE ("updated_job"."id" = "next_job"."id") RETURNING "updated_job"."id"`, qs)
+	a.Equal([]interface{}{expiry}, qv)
+}
+
 func TestSelect(t *testing.T) {
 	a := assert.New(t)
 

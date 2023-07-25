@@ -73,8 +73,8 @@ func TestUpdateWithFromReturning(t *testing.T) {
 
 	expiry := time.Date(2023, time.July, 25, 18, 34, 15, 0, time.UTC)
 
-	q := Update().With(nextJob).Target(updatedJob).Set(UpdateColumns{
-		updatedJob.C("reserved_to"): Bind(expiry),
+	q := Update().With(nextJob).Target(updatedJob).Fields([]UpdateField{
+		{updatedJob.C("reserved_to"), Bind(expiry)},
 	}).Where(Eq(updatedJob.C("id"), nextJob.C("id"))).Returning(updatedJob.C("id"))
 
 	qs, qv, err := NewSerializer(DialectPostgres{}).F(q.AsStatement).ToSQL()

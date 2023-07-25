@@ -2,10 +2,24 @@ package sqlbuilder
 
 type UpdateColumns map[*BasicColumn]AsExpr
 
+func (m UpdateColumns) asFields() []UpdateField {
+	var a []UpdateField
+	for k, e := range m {
+		a = append(a, UpdateField{k, e})
+	}
+	return a
+}
+
+type UpdateField struct {
+	Name  AsNamedShort
+	Value AsExpr
+}
+
 type UpdateStatement struct {
 	with      []AsCommonTableExpression
 	target    AsTableOrSubquery
-	set       UpdateColumns
+	columns   UpdateColumns
+	fields    []UpdateField
 	from      AsTableOrSubquery
 	where     AsExpr
 	returning []AsExpr
@@ -15,7 +29,8 @@ func (s *UpdateStatement) clone() *UpdateStatement {
 	return &UpdateStatement{
 		with:      s.with,
 		target:    s.target,
-		set:       s.set,
+		columns:   s.columns,
+		fields:    s.fields,
 		from:      s.from,
 		where:     s.where,
 		returning: s.returning,
@@ -23,7 +38,7 @@ func (s *UpdateStatement) clone() *UpdateStatement {
 }
 
 func Update() *UpdateStatement {
-	return &UpdateStatement{set: make(UpdateColumns)}
+	return &UpdateStatement{columns: make(UpdateColumns)}
 }
 
 func (s *UpdateStatement) With(with ...AsCommonTableExpression) *UpdateStatement {
@@ -52,9 +67,10 @@ func (s *UpdateStatement) GetTarget() AsTableOrSubquery {
 	return s.target
 }
 
-func (s *UpdateStatement) Set(set UpdateColumns) *UpdateStatement {
+func (s *UpdateStatement) Set(columns UpdateColumns) *UpdateStatement {
 	c := s.clone()
-	c.set = set
+	c.columns = columns
+	c.fields = nil
 	return c
 }
 
@@ -62,14 +78,27 @@ func (s *UpdateStatement) AndSet(column *BasicColumn, expr AsExpr) *UpdateStatem
 	c := s.clone()
 
 	m := make(UpdateColumns)
-	for k, e := range c.set {
+	for k, e := range c.columns {
 		m[k] = e
 	}
 
 	m[column] = expr
 
-	c.set = m
+	c.columns = m
 
+	return c
+}
+
+func (s *UpdateStatement) Fields(fields []UpdateField) *UpdateStatement {
+	c := s.clone()
+	c.columns = nil
+	c.fields = fields
+	return c
+}
+
+func (s *UpdateStatement) AndField(field UpdateField) *UpdateStatement {
+	c := s.clone()
+	c.fields = append(c.fields[:], field)
 	return c
 }
 
@@ -109,10 +138,8 @@ func (q *UpdateStatement) AsStatement(s *Serializer) {
 
 	s.D("UPDATE ").F(q.target.AsTableOrSubquery).D(" SET ")
 
-	i := 0
-	for k, e := range q.set {
-		s.F(k.AsNamedShort).D(" = ").F(e.AsExpr).DC(", ", i < len(q.set)-1)
-		i++
+	for i, f := range append(q.columns.asFields(), q.fields...) {
+		s.DC(", ", i != 0).F(f.Name.AsNamedShort).D(" = ").F(f.Value.AsExpr)
 	}
 
 	if q.from != nil {

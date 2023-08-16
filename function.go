@@ -23,12 +23,14 @@ func (e *FuncExpr) As(alias string) *ColumnAlias {
 	return AliasColumn(e, alias)
 }
 
+// FuncTableExpr is deprecated in favour of FuncTableWithoutNameExpr
 type FuncTableExpr struct {
 	expr   *FuncExpr
 	name   string
 	column *BasicColumn
 }
 
+// FuncTable is deprecated in favour of FuncTableWithoutName
 func FuncTable(expr *FuncExpr, name string) *FuncTableExpr {
 	t := &FuncTableExpr{
 		expr: expr,
@@ -65,5 +67,49 @@ func (t *FuncTableExpr) LeftJoin(right AsTableOrSubquery) *JoinExpr {
 }
 
 func (t *FuncTableExpr) CrossJoin(right AsTableOrSubquery) *JoinExpr {
+	return CrossJoin(t, right)
+}
+
+type FuncTableWithoutNameExpr struct {
+	expr    *FuncExpr
+	names   []string
+	columns []*BasicColumn
+}
+
+func FuncTableWithoutName(expr *FuncExpr, names ...string) *FuncTableWithoutNameExpr {
+	t := &FuncTableWithoutNameExpr{expr: expr, names: names}
+
+	columns := make([]*BasicColumn, len(names))
+	for i, v := range names {
+		columns[i] = &BasicColumn{name: v}
+	}
+	t.columns = columns
+
+	return t
+}
+
+func (t *FuncTableWithoutNameExpr) AsTableOrSubquery(s *Serializer) {
+	s.F(t.expr.AsExpr)
+}
+
+func (t *FuncTableWithoutNameExpr) C(name string) *BasicColumn {
+	for i, n := range t.names {
+		if n == name {
+			return t.columns[i]
+		}
+	}
+
+	return nil
+}
+
+func (t *FuncTableWithoutNameExpr) Join(kind string, right AsTableOrSubquery) *JoinExpr {
+	return Join(kind, t, right)
+}
+
+func (t *FuncTableWithoutNameExpr) LeftJoin(right AsTableOrSubquery) *JoinExpr {
+	return LeftJoin(t, right)
+}
+
+func (t *FuncTableWithoutNameExpr) CrossJoin(right AsTableOrSubquery) *JoinExpr {
 	return CrossJoin(t, right)
 }

@@ -281,6 +281,38 @@ func TestFuncTable(t *testing.T) {
 	a.Equal([]interface{}{1, 10}, qv)
 }
 
+func TestFuncTableWithoutName(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectPostgres{})
+
+	f := FuncTableWithoutName(Func("table_function", Bind(1), Bind(2)), "a", "b", "c")
+
+	q := Select().Columns(f.C("a"), f.C("b"), f.C("c")).From(f)
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`SELECT "a", "b", "c" FROM table_function($1, $2)`, qs)
+	a.Equal([]interface{}{1, 2}, qv)
+}
+
+func TestFuncTableWithoutNameWithAlias(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectPostgres{})
+
+	f := AliasTable(FuncTableWithoutName(Func("table_function", Bind(1), Bind(2)), "a", "b", "c"), "t")
+
+	q := Select().Columns(f.C("a"), f.C("b"), f.C("c")).From(f)
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal(`SELECT "t"."a", "t"."b", "t"."c" FROM table_function($1, $2) "t"`, qs)
+	a.Equal([]interface{}{1, 2}, qv)
+}
+
 func TestUnion(t *testing.T) {
 	a := assert.New(t)
 

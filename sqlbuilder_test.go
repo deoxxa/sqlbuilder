@@ -397,3 +397,26 @@ func TestBareColumn(t *testing.T) {
 		})
 	}
 }
+
+func TestOrder(t *testing.T) {
+	a := assert.New(t)
+
+	s := NewSerializer(DialectGeneric{})
+
+	tbl := NewTable("tbl", "id", "created_at", "rating", "name")
+
+	q := Select().From(tbl).Columns(
+		tbl.C("id"),
+		tbl.C("created_at"),
+		tbl.C("rating"),
+		tbl.C("name"),
+	).OrderBy(
+		OrderAscNullsLast(Func("array_position", tbl.C("rating"), Bind([]string{"critical", "rushed", "normal"}))),
+	)
+
+	qs, qv, err := s.F(q.AsStatement).ToSQL()
+
+	a.NoError(err)
+	a.Equal("SELECT tbl.id, tbl.created_at, tbl.rating, tbl.name FROM tbl ORDER BY array_position(tbl.rating, $1) ASC NULLS LAST", qs)
+	a.Equal([]interface{}{[]string{"critical", "rushed", "normal"}}, qv)
+}
